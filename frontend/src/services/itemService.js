@@ -52,7 +52,7 @@ export const createItem = async (itemData) => {
   try {
     // If itemData is FormData, it's already properly formatted
     if (itemData instanceof FormData) {
-      const response = await api.post('/admin/items', itemData, {
+      const response = await api.post('/items', itemData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
