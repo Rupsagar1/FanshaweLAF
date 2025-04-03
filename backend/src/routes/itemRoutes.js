@@ -49,8 +49,8 @@ router.post('/', upload.array('images', 5), createItem);
 router.get('/', getAllItems);
 router.get('/search', searchItems);
 router.get('/filter', filterItems);
+router.post('/claim', upload.single('qrCode'), claimItem);
 router.get('/:id', getItemById);
-router.post('/:id/claim', claimItem);
 
 // Admin routes
 router.put('/:id', adminAuth, updateItem);

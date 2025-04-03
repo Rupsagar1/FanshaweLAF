@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
-import { getAllItems, createItem, updateItem, deleteItem } from "../../services/itemService";
+import { getAllItems, createItem, updateItem, deleteItem, adminSendVerificationEmail } from "../../services/itemService";
 import { isAdminAuthenticated } from "../../services/authService";
+import { toast } from "react-toastify";
 import api from "../../api/config";
 
 const AdminDashboard = () => {
@@ -37,6 +38,8 @@ const AdminDashboard = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [selectedItemId, setSelectedItemId] = useState('');
 
   useEffect(() => {
     const checkAuth = () => {
@@ -224,6 +227,32 @@ const AdminDashboard = () => {
     setShowDetailsModal(true);
   };
 
+  const handleSendVerification = async (e) => {
+    e?.preventDefault(); // Prevent form submission if called from a form
+    
+    if (!verificationEmail) {
+      toast.error('Please enter an email address');
+      return;
+    }
+    if (!selectedItemId) {
+      toast.error('Please select an item');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await adminSendVerificationEmail(selectedItemId, verificationEmail);
+      toast.success(response.message || 'Verification code sent successfully!');
+      setVerificationEmail(''); // Clear email input after success
+      setSelectedItemId(''); // Reset item selection
+    } catch (error) {
+      console.error('Error sending verification:', error);
+      toast.error(error.message || 'Failed to send verification code. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const filteredItems = (inventoryItems || [])
     .filter(item => {
       const matchesSearch = 
@@ -258,6 +287,12 @@ const AdminDashboard = () => {
             <div className="flex justify-between items-center">
               <h1 className="text-6xl font-bold text-black my-4">Admin Dashboard</h1>
               <div className="flex space-x-4">
+                <button
+                  onClick={() => navigate('/admin/claims')}
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  View Claim Requests
+                </button>
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="bg-[#e2231a] text-white px-4 py-2 rounded hover:bg-[#c41e16]"
@@ -297,6 +332,64 @@ const AdminDashboard = () => {
               <h3>Returned Items</h3>
               <p className="text-2xl">{stats.returned}</p>
             </div>
+          </div>
+
+          {/* Verification Code Section */}
+          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 className="text-xl font-semibold mb-4">Send Verification Code</h2>
+            <form onSubmit={handleSendVerification} className="flex gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Item
+                </label>
+                <select
+                  value={selectedItemId}
+                  onChange={(e) => setSelectedItemId(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                  required
+                >
+                  <option value="">Select an item...</option>
+                  {inventoryItems.map((item) => (
+                    <option key={item._id} value={item._id}>
+                      ID: {item._id} - {item.title} - {item.location} ({item.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={verificationEmail}
+                  onChange={(e) => setVerificationEmail(e.target.value)}
+                  placeholder="Enter email address"
+                  className="w-full px-3 py-2 border rounded-md"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isLoading || !selectedItemId || !verificationEmail}
+                className="bg-[#e2231a] text-white px-6 py-2 rounded-md hover:bg-[#c41e16] transition-colors disabled:opacity-50 h-[42px] flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                  </svg>
+                )}
+                Send Code
+              </button>
+            </form>
           </div>
 
           {/* Inventory Management */}
@@ -388,6 +481,7 @@ const AdminDashboard = () => {
                           className="h-4 w-4"
                         />
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">Item</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">Category</th>
@@ -413,6 +507,9 @@ const AdminDashboard = () => {
                             }}
                             className="h-4 w-4"
                           />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {item._id}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(item.date).toLocaleDateString()}

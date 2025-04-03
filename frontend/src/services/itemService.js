@@ -184,14 +184,12 @@ export const deleteItem = async (id) => {
 };
 
 // Claim item (public)
-export const claimItem = async (claimData) => {
+export const claimItem = async (formData) => {
   try {
-    const response = await api.post(`/items/${claimData.itemId}/claim`, {
-      firstName: claimData.firstName,
-      lastName: claimData.lastName,
-      email: claimData.email,
-      phone: claimData.phone,
-      verificationCode: claimData.verificationCode
+    const response = await api.post('/items/claim', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
     return response.data;
   } catch (error) {
@@ -239,5 +237,49 @@ export const getItemStats = async () => {
   } catch (error) {
     console.error('Get Stats Error:', error);
     throw new Error('Error fetching statistics');
+  }
+};
+
+// Send verification email
+export const sendVerificationEmail = async (email) => {
+  try {
+    const response = await api.post('/auth/send-verification', { email });
+    return response.data;
+  } catch (error) {
+    console.error('Send Verification Error:', error);
+    throw new Error(error.response?.data?.message || 'Error sending verification email');
+  }
+};
+
+// Verify email code
+export const verifyEmail = async (email, code) => {
+  try {
+    const response = await api.post('/auth/verify-email', { email, code });
+    return response.data;
+  } catch (error) {
+    console.error('Verify Email Error:', error);
+    throw new Error(error.response?.data?.message || 'Error verifying email');
+  }
+};
+
+// Admin sends verification email to user who reported item
+export const adminSendVerificationEmail = async (itemId, email) => {
+  try {
+    const response = await api.post('/admin/send-verification', { itemId, email });
+    return response.data;
+  } catch (error) {
+    console.error('Admin Send Verification Error:', error);
+    throw new Error(error.response?.data?.message || 'Error sending verification email');
+  }
+};
+
+// Admin verifies QR code
+export const adminVerifyQRCode = async (qrData) => {
+  try {
+    const response = await api.post('/admin/verify-claim', { qrData });
+    return response.data;
+  } catch (error) {
+    console.error('Admin Verify QR Error:', error);
+    throw new Error(error.response?.data?.message || 'Error verifying QR code');
   }
 }; 

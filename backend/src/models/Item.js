@@ -43,15 +43,24 @@ const itemSchema = new mongoose.Schema({
     lastName: String,
     email: String,
     phone: String,
-    verificationCode: String,
     claimDate: Date,
+  },
+  verificationCode: {
+    type: String
+  },
+  verificationExpires: {
+    type: Date
   },
   isApproved: {
     type: Boolean,
     default: false,
   },
   qrCode: {
-    type: String
+    base64: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
   },
   createdAt: {
     type: Date,
@@ -60,6 +69,13 @@ const itemSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  claimedBy: {
+    firstName: String,
+    lastName: String,
+    email: String,
+    phoneNumber: String,
+    claimedAt: Date
   }
 }, {
   timestamps: true,

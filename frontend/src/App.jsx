@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Report from './pages/Report';
@@ -8,11 +10,25 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminLogin from './pages/admin/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { isAdminAuthenticated } from './services/authService';
+import AdminVerification from './pages/admin/AdminVerification';
+import ClaimRequests from './pages/admin/ClaimRequests';
 
 function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
@@ -34,8 +50,16 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/admin/claims" element={
+            <ProtectedRoute>
+              <ClaimRequests />
+            </ProtectedRoute>
+          } />
+
           {/* Redirect /admin to /admin/login */}
           <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+
+          <Route path="/admin/verification" element={<AdminVerification />} />
 
           {/* 404 Route */}
           <Route path="*" element={

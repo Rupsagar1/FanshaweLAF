@@ -1,5 +1,6 @@
 const Item = require('../models/Item');
 const { uploadToCloudinary } = require('../utils/cloudinary');
+const fs = require('fs');
 
 // Create a new item
 exports.createItem = async (req, res) => {
@@ -116,9 +117,42 @@ exports.deleteItem = async (req, res) => {
 // Claim item
 exports.claimItem = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, verificationCode } = req.body;
+    const { firstName, lastName, email, phone } = req.body;
+    const qrCodeFile = req.file; // Get the uploaded QR code file
+
+    console.log('Received claim request:', {
+      firstName,
+      lastName,
+      email,
+      phone,
+      hasQRCode: !!qrCodeFile,
+      fileDetails: qrCodeFile ? {
+        filename: qrCodeFile.filename,
+        mimetype: qrCodeFile.mimetype,
+        size: qrCodeFile.size
+      } : null
+    });
+
+    if (!qrCodeFile) {
+      return res.status(400).json({ message: 'QR code is required' });
+    }
+
+    // Read the QR code file content
+    const qrContent = await fs.promises.readFile(qrCodeFile.path, 'utf8');
     
-    const item = await Item.findById(req.params.id);
+    // Parse QR code content to get item ID
+    const lines = qrContent.split('\n');
+    const itemIdLine = lines.find(line => line.startsWith('Item ID: '));
+    
+    if (!itemIdLine) {
+      return res.status(400).json({ message: 'Invalid QR code format' });
+    }
+
+    // Extract item ID from the line
+    const itemId = itemIdLine.split(': ')[1];
+
+    // Find the item
+    const item = await Item.findById(itemId);
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
@@ -127,19 +161,34 @@ exports.claimItem = async (req, res) => {
       return res.status(400).json({ message: 'Item has already been claimed' });
     }
 
-    item.claimant = {
+    // Update claimant information
+    item.claimedBy = {
       firstName,
       lastName,
       email,
       phone,
-      verificationCode,
-      claimDate: new Date(),
+      claimedAt: new Date()
     };
     item.status = 'claimed';
 
     await item.save();
-    res.json(item);
+    console.log('Item claimed successfully:', item._id);
+
+    // Clean up the uploaded QR code file
+    await fs.promises.unlink(qrCodeFile.path);
+
+    res.json({
+      success: true,
+      message: 'Item claimed successfully',
+      item: {
+        id: item._id,
+        title: item.title,
+        status: item.status,
+        claimedBy: item.claimedBy
+      }
+    });
   } catch (error) {
+    console.error('Error in claimItem:', error);
     res.status(500).json({ message: 'Error claiming item', error: error.message });
   }
 };
